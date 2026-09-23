@@ -1,0 +1,212 @@
+[project]
+name = "commitizen-galaxy-provider"
+version = "0.1.0"
+description = "An (ansible) Galaxy provider for commitizen"
+readme = "README.md"
+authors = [{ name = "Andrea Tartaglia", email = "the_shaps@pm.me" }]
+requires-python = ">=3.10"
+dependencies = ["commitizen>=4.19.0", "pyyaml>=6.0.3"]
+license = "GPL-3.0-or-later"
+license-files = ["LICENSE"]
+
+keywords = ["commitizen", "ansible", "galaxy", "commits", "git"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Natural Language :: English",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Programming Language :: Python :: Implementation :: CPython",
+]
+
+[project.urls]
+Homepage = "https://github.com/shaps/commitizen-galaxy-provider"
+Repository = "https://github.com/shaps/commitizen-galaxy-provider"
+Issues = "https://github.com/shaps/commitizen-galaxy-provider/issues"
+Changelog = "https://github.com/shaps/commitizen-galaxy-provider/blob/main/CHANGELOG.md"
+
+[build-system]
+requires = ["uv_build>=0.12.5,<0.13.0"]
+build-backend = "uv_build"
+
+[project.entry-points."commitizen.provider"]
+galaxy = "commitizen_galaxy_provider.provider:GalaxyProvider"
+
+[dependency-groups]
+# dev = ["pytest>=9.1.1"]
+dev = [
+    { include-group = "base" },
+    { include-group = "test" },
+    { include-group = "linters" },
+    "ipython>=8.0",
+    "tox>4",
+    "tox-uv",
+]
+
+base = ["poethepoet>=0.34.0"]
+
+test = [
+    "pytest>=9",
+    "pytest-cov>=4",
+    "pytest-regressions>=2.4.0",
+    "pytest-xdist>=3.1.0",
+]
+
+linters = [
+    "ruff>=0.11.5",
+    "mypy>=1.16.0",
+    "types-PyYAML>=5.4.3",
+    "prek>=0.2.28",
+]
+
+
+[tool.commitizen]
+tag_format = "v$version"
+version_files = [
+    "src/commitizen_galaxy_provider/__version__.py",
+    "pyproject.toml",
+]
+version_provider = "uv"
+version_scheme = "pep440"
+annotated_tag = true
+update_changelog_on_bump = true
+
+[tool.uv.build-backend]
+module-name = "commitizen_galaxy_provider"
+module-root = "src"
+
+[tool.coverage]
+[tool.coverage.report]
+show_missing = true
+omit = [
+    'env/*',
+    'venv/*',
+    '.venv/*',
+    '*/virtualenv/*',
+    '*/virtualenvs/*',
+    '*/tests/*',
+]
+
+
+[tool.pytest]
+addopts = ["--strict-markers"]
+testpaths = ["tests/"]
+filterwarnings = [
+    # get_smart_tag_range is deprecated and will be removed in v5
+    "ignore:Call to deprecated function \\(or staticmethod\\) get_smart_tag_range:DeprecationWarning",
+]
+
+[tool.tox]
+requires = ["tox>=4.22"]
+env_list = ["3.10", "3.11", "3.12", "3.13", "3.14"]
+
+[tool.tox.env_run_base]
+description = "Run tests suite against Python {base_python}"
+dependency_groups = ["test"]
+commands = [["pytest", { replace = "posargs", extend = true }]]
+
+[tool.ruff]
+required-version = ">=0.11.5"
+line-length = 88
+
+[tool.ruff.lint]
+select = [
+    # flake8-annotations
+    "ANN001",
+    "ANN2",
+    # pycodestyle
+    "E",
+    # Pyflakes
+    "F",
+    # pyupgrade
+    "UP",
+    # isort
+    "I",
+    # pygrep-hooks
+    "PGH003",
+    "PGH004",
+    # unsorted-dunder-all
+    "RUF022",
+    # unused-noqa
+    "RUF100",
+    # flake8-pytest-style
+    "PT",
+    # Checks for uses of the assert keyword.
+    "S101",
+    # flake8-type-checking (TC)
+    "TC001",
+    "TC002",
+    "TC003",
+    "TC004",
+    "TC005",
+    "TC006",
+]
+ignore = ["E501", "D1", "D415"]
+extend-safe-fixes = [
+    "TC",    # Move imports inside/outside TYPE_CHECKING blocks
+    "UP",    # Update syntaxes for current Python version recommendations
+    "PT006", # Use tuple in pytest.mark.parametrize
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["ANN", "S101"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["commitizen_galaxy_provider", "tests"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.mypy]
+files = ["src/commitizen_galaxy_provider", "tests"]
+disallow_untyped_decorators = true
+disallow_subclassing_any = true
+warn_return_any = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_unused_configs = true
+
+[tool.poe]
+executor.type = "uv"
+
+[tool.poe.tasks]
+format.help = "Format the code"
+format.sequence = [{ cmd = "ruff check --fix" }, { cmd = "ruff format" }]
+
+lint.help = "Lint the code"
+lint.sequence = [{ cmd = "ruff check" }, { cmd = "mypy" }]
+
+check-commit.help = "Check the commit messages"
+check-commit.cmd = "cz --no-raise 3 check --rev-range origin/main.."
+
+test.help = "Run the test suite"
+test.cmd = "pytest -n auto --dist=loadfile"
+
+"test:all".help = "Run the test suite on all supported Python versions"
+"test:all".cmd = "tox --parallel"
+
+"test:regen".help = "Regenerate the test fixtures"
+"test:regen".parallel = [
+    { ref = "test -k 'not py_' --regen-all" },
+    { ref = "test:all -- -k py_ --regen-all" },
+]
+
+cover.help = "Run the test suite with coverage"
+cover.ref = "test --cov-report term-missing --cov-report=xml:coverage.xml --cov=src/commitizen_galaxy_provider  --junitxml=junit.xml -o junit_family=legacy"
+
+all.help = "Run all tasks"
+all.sequence = ["format", "lint", "check-commit", "cover"]
+
+ci.help = "Run all tasks in CI"
+ci.sequence = ["check-commit", { cmd = "prek run --all-files" }, "cover"]
+ci.env = { SKIP = "no-commit-to-branch" }
+
+setup-pre-commit.help = "Install pre-commit hooks"
+setup-pre-commit.cmd = "prek install"
