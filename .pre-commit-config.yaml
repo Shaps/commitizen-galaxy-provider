@@ -1,0 +1,74 @@
+default_install_hook_types:
+  - pre-commit
+  - commit-msg
+  - pre-push
+
+default_stages:
+  - pre-commit
+
+repos:
+  - repo: meta
+    hooks:
+      - id: check-hooks-apply
+      - id: check-useless-excludes
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: check-vcs-permalinks
+      - id: end-of-file-fixer
+        exclude: "tests/((commands|data|providers/test_uv_provider)/|test_).+"
+      - id: trailing-whitespace
+        args: [--markdown-linebreak-ext=md]
+        exclude: '\.svg$'
+      - id: debug-statements
+      - id: no-commit-to-branch
+      - id: check-merge-conflict
+      - id: check-toml # TOML linter (syntax checker)
+      - id: check-yaml
+        args: ["--unsafe"] # for mkdocs.yml
+      - id: detect-private-key
+
+  - repo: https://github.com/astral-sh/uv-pre-commit
+    rev: 0.9.18
+    hooks:
+      - id: uv-lock
+      - id: uv-sync
+        args: [--frozen, --all-groups]
+        stages: [pre-commit, post-checkout, post-merge, post-rewrite]
+
+  - repo: https://github.com/codespell-project/codespell
+    rev: v2.4.1
+    hooks:
+      - id: codespell
+        name: Run codespell to check for common misspellings in files
+        # config section is within pyproject.toml
+        language: python
+        types: [text]
+        args: ["--write-changes"]
+        additional_dependencies:
+          - tomli
+
+  - repo: https://github.com/commitizen-tools/commitizen
+    rev: v4.19.0
+    hooks:
+      - id: commitizen
+      - id: commitizen-branch
+        stages:
+          - post-commit
+
+  - repo: local
+    hooks:
+      - id: format
+        name: Format Python code
+        language: system
+        pass_filenames: false
+        entry: uv run --no-sync poe format
+        types: [python]
+
+      - id: linter and test
+        name: Linters
+        language: system
+        pass_filenames: false
+        entry: uv run --no-sync poe lint
+        types: [python]
