@@ -1,6 +1,6 @@
 [project]
 name = "commitizen-galaxy-provider"
-version = "0.1.0"
+version = "0.2.0"
 description = "An (ansible) Galaxy provider for commitizen"
 readme = "README.md"
 authors = [{ name = "Andrea Tartaglia", email = "the_shaps@pm.me" }]
